@@ -1,0 +1,246 @@
+service: ${self:custom.serviceName}
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  httpApi:
+    cors: false
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:*
+          Resource: "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+        - Effect: Allow
+          Action:
+            - sns:*
+          Resource: !Ref ApointmentSnsTopic
+        - Effect: Allow
+          Action:
+            - sqs:*
+          Resource: 
+            - "*"
+        - Effect: Allow
+          Action:
+            - events:*
+          Resource: "*"
+  environment:
+    DYNAMODB_TABLE: ${self:custom.ResourceNames}-Appointments
+    RDS_HOST: ${self:custom.RDS_HOST}
+    RDS_PORT: ${self:custom.RDS_PORT}
+    RDS_USER: ${self:custom.RDS_USER}
+    RDS_PASSWORD: ${self:custom.RDS_PASSWORD}
+    RDS_DATABASE: ${self:custom.RDS_DATABASE}
+    LOG_LEVEL: 'INFO,DEBUG,ERROR'
+    SNS_TOPIC_ARN: !Ref ApointmentSnsTopic
+    SQS_PE_ARN: !GetAtt SQSPE.Arn
+    SQS_CL_ARN: !GetAtt SQSCL.Arn
+
+
+plugins:
+  - serverless-better-credentials
+  - serverless-esbuild
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    useChildProcesses: true
+    ts-node: true # Habilita transpilación en tiempo real
+  serviceName: Reto-Indra
+  ResourceNames: ${self:custom.serviceName}-${self:provider.stage}
+  RDS_HOST: 'dev'
+  RDS_PORT: '5432'
+  RDS_USER: 'dev'
+  RDS_PASSWORD: 'dev'
+  RDS_DATABASE: 'dev'
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    watch: 
+      pattern: 
+        - 'src/**/*.ts'
+    concurrency: 10
+    external: 
+      - '@aws-sdk/client-dynamodb'
+      - '@aws-sdk/lib-dynamodb'
+      - '@aws-sdk/client-sns'
+      - '@aws-sdk/client-eventbridge'
+
+functions:
+  appointment:
+    handler: src/handler.appointmentHandler
+    events:
+      - httpApi:
+          method: '*'
+          path: /V1/{proxy+}
+      - sqs:
+          arn: 
+            Fn::GetAtt:
+              - SQSConfirmation
+              - Arn
+          batchSize: 1
+
+  appointment_pe:
+    handler: src/handler.handlerAppointmentPE
+    events:
+      - sqs:
+          arn: !GetAtt SQSPE.Arn
+          batchSize: 1
+  appointment_cl:
+    handler: src/handler.handlerAppointmentCL
+    events:
+      - sqs:
+          arn: !GetAtt SQSCL.Arn
+          batchSize: 1
+
+resources:
+  Resources:
+    # -------------------------------------------------------------
+    # Tablas DynamoDB
+    # -------------------------------------------------------------
+    AppointmentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          -
+            AttributeName: appointmentId
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: appointmentId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+    # -------------------------------------------------------------
+    # SNS Topic
+    # -------------------------------------------------------------
+    ApointmentSnsTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:custom.ResourceNames}-topic
+
+    # -------------------------------------------------------------
+    # SQS Queues (PE, CL, Confirmation, Update)
+    # -------------------------------------------------------------
+    # Si ya están definidas, no las dupliques. Por ejemplo, SQSConfirmation
+    # ya existe en tu archivo. Ajusta los nombres según corresponda.
+    SQSPE:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:custom.ResourceNames}-PE
+
+    SQSCL:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:custom.ResourceNames}-CL
+
+    SQSConfirmation:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:custom.ResourceNames}-Confirmation
+
+    # -------------------------------------------------------------
+    # SNS -> SQS Subscriptions
+    # -------------------------------------------------------------
+    SnsPeSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        TopicArn: !Ref ApointmentSnsTopic
+        Protocol: sqs
+        Endpoint: !GetAtt SQSPE.Arn
+        FilterPolicy:
+          countryISO: 
+            - PE
+
+    SnsClSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        TopicArn: !Ref ApointmentSnsTopic
+        Protocol: sqs
+        Endpoint: !GetAtt SQSCL.Arn
+        FilterPolicy:
+          countryISO: 
+            - CL
+
+    # -------------------------------------------------------------
+    # EventBridge -> SQS Subscriptions
+    # -------------------------------------------------------------
+
+    CompletedAppointmentsEventBus:
+      Type: AWS::Events::EventBus
+      Properties:
+        Name: completed-appointments
+
+    # -------------------------------------------------------------
+    # Queue Policy para permitir que SNS envíe mensajes a SQS
+    # -------------------------------------------------------------
+    SnsToSqsPolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref SQSPE
+          - !Ref SQSCL
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Sid: SnsToSqsPE
+              Effect: Allow
+              Principal:
+                Service: sns.amazonaws.com
+              Action: sqs:SendMessage
+              Resource: !GetAtt SQSPE.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !Ref ApointmentSnsTopic
+            - Sid: SnsToSqsCL
+              Effect: Allow
+              Principal:
+                Service: sns.amazonaws.com
+              Action: sqs:SendMessage
+              Resource: !GetAtt SQSCL.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !Ref ApointmentSnsTopic
+
+    # -------------------------------------------------------------
+    # Permitir que EventBridge envíe mensajes a SQSConfirmation
+    # -------------------------------------------------------------
+    AppointmentEventRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Description: "Rule to send messages to SQSConfirmation"
+        EventBusName: "completed-appointments"
+        EventPattern:
+          source:
+            - "appointment"
+          detail-type:
+            - "appointment-confirmation"
+        State: "ENABLED"
+        Targets:
+          - Arn: !GetAtt SQSConfirmation.Arn
+            Id: "SendToConfirmationQueue"
+    EventBridgeToConfirmatedQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref SQSConfirmation
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Sid: EventBridgeToConfirmationQueue
+              Effect: Allow
+              Principal:
+                Service: events.amazonaws.com
+              Action: sqs:SendMessage
+              Resource: !GetAtt SQSConfirmation.Arn
+
+package:
+  excludeDevDependencies: true
+  individually: true
+  patterns:
+    - '!node_modules/**'
