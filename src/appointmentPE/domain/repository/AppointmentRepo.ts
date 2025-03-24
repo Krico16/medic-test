@@ -1,5 +1,5 @@
-import { Appointment } from "../model/Appointment";
+import { Appointment } from '../model/Appointment';
 
 export interface AppointmentRepository {
-    save(appointment: Appointment): Promise<void>;
+  save (appointment: Appointment): Promise<void>;
 }

@@ -1,3 +1,32 @@
 {
-  "extends": "tslint-config-standard"
+  "extends": "tslint-config-standard",
+  "rules": {
+    "indent": [true, "spaces", 2],
+    "ter-indent": [true, 2],
+    "max-line-length": [true, 120],
+    "no-consecutive-blank-lines": true,
+    "quotemark": [true, "single"],
+    "semicolon": [true, "always"],
+    "trailing-comma": [true, {"multiline": "always", "singleline": "never"}],
+    "array-type": [true, "array-simple"],
+    "space-before-function-paren": [true, "always"],
+    "no-trailing-whitespace": true,
+    "object-literal-sort-keys": false,
+    "ordered-imports": true,
+    "arrow-parens": [true, "ban-single-arg-parens"],
+    "curly": true,
+    "no-console": false,
+    "no-empty": true,
+    "eofline": true,
+    "comment-format": [true, "check-space"],
+    "whitespace": [
+      true,
+      "check-branch",
+      "check-decl",
+      "check-operator",
+      "check-module",
+      "check-separator",
+      "check-type"
+    ]
+  }
 }

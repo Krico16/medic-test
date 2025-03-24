@@ -1,0 +1,45 @@
+type: object
+required:
+  - insuredId
+  - scheduleId
+  - countryISO
+properties:
+  insuredId:
+    type: string
+    description: Insured person identifier
+    example: C00010
+  scheduleId:
+    type: object
+    required:
+      - scheduleId
+      - centerId
+      - specialityId
+      - medicId
+      - date
+    properties:
+      scheduleId:
+        type: string
+        description: Schedule identifier
+        example: '10055'
+      centerId:
+        type: string
+        description: Medical center identifier
+        example: '4'
+      specialityId:
+        type: string
+        description: Medical specialty identifier
+        example: '3'
+      medicId:
+        type: string
+        description: Doctor identifier
+        example: '45'
+      date:
+        type: string
+        format: date-time
+        description: Appointment date and time
+        example: '2025-03-30T12:30:00Z'
+  countryISO:
+    type: string
+    enum: [PE, CL]
+    description: Country ISO code
+    example: PE

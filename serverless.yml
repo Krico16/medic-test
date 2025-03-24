@@ -244,3 +244,5 @@ package:
   individually: true
   patterns:
     - '!node_modules/**'
+    - '!test/**'
+    - '!docs/**'

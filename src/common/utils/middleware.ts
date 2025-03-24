@@ -1,6 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2, SQSEvent } from 'aws-lambda';
 import { Routes } from './handlerRequest';
-import { Result } from './response';
+import { MessageUtil, Result } from './response';
 
 /***********************
  *      Interfaces      *
@@ -19,7 +19,7 @@ interface Handler<T = unknown> {
  *     Middleware      *
  ***********************/
 const parseRequestBody = <T>(event: APIGatewayProxyEventV2): T | undefined => {
-  if (!event.body) return undefined;
+  if (!event.body) { return undefined; }
 
   try {
     return JSON.parse(event.body) as T;
@@ -39,15 +39,14 @@ export const middleware = <T>(handler: Handler<T>):
       const request: Request<T> = {
         body: parseRequestBody<T>(event),
         params,
-        query: parseQueryParams(event)
+        query: parseQueryParams(event),
       };
-      console.info(`Sending body to handler: ${JSON.stringify(request)}`);
       return await handler(request);
     } catch (error) {
       return {
         statusCode: 400,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid request' })
+        body: JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid request' }),
       };
     }
   };
@@ -87,7 +86,7 @@ export const HandleHttpRequest = async (event: APIGatewayProxyEventV2, routes: R
   const params = extractPathParams(routeKey, event.rawPath);
 
   return routeMethods[method](event, params);
-}
+};
 
 export const HandleSqsEvent = async (event: SQSEvent, handler: Handler): Promise<any> => {
   for (const record of event.Records) {
@@ -100,17 +99,19 @@ export const HandleSqsEvent = async (event: SQSEvent, handler: Handler): Promise
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ message: 'Messages processed' })
-  }
-}
+    body: JSON.stringify({ message: 'Messages processed' }),
+  };
+};
 
 export const HandleResponse = (response: Result): APIGatewayProxyResultV2 => {
-  const {body, statusCode} = response.bodyToString();
-  return {
+  const { statusCode, body } = response.bodyToString();
+  const finalResponse =  {
     statusCode: statusCode,
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body)
-  }
-}
+    body: JSON.stringify(body),
+  };
+  console.log(`Sending response:: ${JSON.stringify(finalResponse)}`)
+  return finalResponse;
+};

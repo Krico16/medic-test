@@ -1,11 +1,11 @@
-import { AppoinmentController } from "./appoinment/infra/controllers/AppoinmentController";
-import { Routes } from "./common/utils/handlerRequest";
-import { APIGatewayProxyEventV2, SQSEvent } from "aws-lambda";
-import { HandleHttpRequest, HandleResponse, HandleSqsEvent, middleware } from "./common/utils/middleware";
-import { AppoinmentCountryController as ClController } from "./appointmentCL/infra/controller/AppointmentCountryController";
-import { AppoinmentCountryController as PeController } from "./appointmentPE/infra/controller/AppointmentCountryController";
-import { MessageUtil } from "./common/utils/response";
-import { log, info, debug } from "console";
+import { APIGatewayProxyEventV2, SQSEvent } from 'aws-lambda';
+import { debug, info, log } from 'console';
+import { AppoinmentController } from './appoinment/infra/controllers/AppoinmentController';
+import { AppoinmentCountryController as ClController } from './appointmentCL/infra/controller/AppointmentCountryController';
+import { AppoinmentCountryController as PeController } from './appointmentPE/infra/controller/AppointmentCountryController';
+import { Routes } from './common/utils/handlerRequest';
+import { HandleHttpRequest, HandleSqsEvent, middleware } from './common/utils/middleware';
+import { MessageUtil } from './common/utils/response';
 
 const appointController = new AppoinmentController();
 const CLAppointController = new ClController();
@@ -13,19 +13,21 @@ const PEAppointController = new PeController();
 
 export const routes: Routes = {
   '/V1/appointment': {
-    POST: middleware((request) => appointController.registerAppoinment(request))
+    POST: middleware(request => appointController.registerAppoinment(request)),
   },
-  '/V1/appointment/{appoinmentId}': {
-    GET: middleware((request) => appointController.SearchAppoinment(request)),
+  '/V1/appointment/{appointmentId}': {
+    GET: middleware(request => appointController.SearchAppoinment(request)),
   },
-}
+  '/V1/appointments/{insuredId}': {
+    GET: middleware(request => appointController.ListAppointments(request)),
+  }
+};
 
 export const appointmentHandler = async (event: APIGatewayProxyEventV2 | SQSEvent) => {
-  debug(`RECEIVED EVENT:: ${JSON.stringify(event)}`);
   info(`RECEIVED EVENT:: ${JSON.stringify(event)}`);
   try {
     if ('Records' in event && event.Records[0].eventSource === 'aws:sqs') {
-      return HandleSqsEvent(event as SQSEvent, async (request) => {
+      return HandleSqsEvent(event as SQSEvent, async request => {
         return appointController.updateAppointment(request);
       });
     }
@@ -33,7 +35,7 @@ export const appointmentHandler = async (event: APIGatewayProxyEventV2 | SQSEven
     return HandleHttpRequest(event as APIGatewayProxyEventV2, routes);
   } catch (error) {
     if (error instanceof MessageUtil) {
-      return error
+      return error;
     }
     return MessageUtil.error(500, 'An Error has ocurred', error.message);
   }
@@ -47,7 +49,7 @@ export const handlerAppointmentPE = async (event: SQSEvent) => {
     await PEAppointController.createAppointment(message);
   }
   return MessageUtil.success({ message: 'Appointment created successfully' });
-}
+};
 
 export const handlerAppointmentCL = async (event: SQSEvent) => {
   for (const record of event.Records) {
@@ -55,5 +57,4 @@ export const handlerAppointmentCL = async (event: SQSEvent) => {
     await CLAppointController.createAppointment(message);
   }
   return MessageUtil.success({ message: 'Appointment created successfully' });
-}
-
+};

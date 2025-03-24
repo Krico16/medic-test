@@ -1,0 +1,95 @@
+openapi: 3.1.0
+info:
+  title: Indra Tecnical Test
+  description: |- 
+    This is a technical test for Indra, the purpose of this test is to create a REST API that allows to manage appointments, the API must have the following endpoints:
+    - Create an appointment
+    - Search for an appointment by ID
+    - List all appointments from a specific user
+  version: 1.0.0
+servers:
+  - url: 'https://api.indra.com/{basePath}'
+    description: 'Production server'
+paths:
+  /V1/appointment:
+    post:
+      summary: Create a new appointment
+      description: Creates an appointment and triggers country-specific processing
+      operationId: createAppointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentRequest'
+      responses:
+        '200':
+          description: Appointment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponses'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /V1/appointment/{appointmentId}:
+    get:
+      summary: Get appointment by ID
+      description: Get appointment by ID
+      operationId: getAppointmentById
+      parameters:
+        - name: appointmentId
+          in: path
+          description: ID of the appointment to get
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Appointment found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponses'
+        '404':
+          description: Appointment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /V1/appointments:
+    get:
+      summary: Get all appointments from a specific user
+      description: Get all appointments from a specific user
+      operationId: getAppointmentsByUser
+      parameters:
+        - name: insuredId
+          in: path
+          description: InsuredID of the user to get the appointments
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Appointments found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponses'
+        '404':
+          description: Appointments not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    AppointmentRequest:
+      $ref: './requests/AppointmentRequest.yaml'
+    SuccessResponses:
+      $ref: './responses/SuccessResponses.yaml'
+    ErrorResponse:
+        $ref: './responses/ErrorResponse.yaml'
