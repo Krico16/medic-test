@@ -1,4 +1,5 @@
 export interface Appointment {
+    id: string;
     appointmentId: string;
     insuredId: string;
     scheduleId: string;
@@ -13,6 +14,7 @@ export interface Appointment {
 }
 
 export class MysqlAppointment {
+    id: string;
     appointmentId: string;
     insuredId: string;
     scheduleId: string;
@@ -26,6 +28,7 @@ export class MysqlAppointment {
     createdAt: string;
 
     constructor(appointment: Appointment) {
+        this.id = appointment.id;
         this.appointmentId = appointment.appointmentId;
         this.insuredId = appointment.insuredId;
         this.scheduleId = appointment.scheduleId;
@@ -41,6 +44,7 @@ export class MysqlAppointment {
 
     toAppointment(): Appointment {
         return {
+            id: this.id,
             appointmentId: this.appointmentId,
             insuredId: this.insuredId,
             scheduleId: this.scheduleId,

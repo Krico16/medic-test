@@ -1,5 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2, SQSEvent } from 'aws-lambda';
 import { Routes } from './handlerRequest';
+import { Result } from './response';
 
 /***********************
  *      Interfaces      *
@@ -45,6 +46,7 @@ export const middleware = <T>(handler: Handler<T>):
     } catch (error) {
       return {
         statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid request' })
       };
     }
@@ -83,10 +85,8 @@ export const HandleHttpRequest = async (event: APIGatewayProxyEventV2, routes: R
 
   // Extraer parámetros de la ruta
   const params = extractPathParams(routeKey, event.rawPath);
-  console.log('PARAMS', params);
 
   return routeMethods[method](event, params);
-
 }
 
 export const HandleSqsEvent = async (event: SQSEvent, handler: Handler): Promise<any> => {
@@ -101,5 +101,16 @@ export const HandleSqsEvent = async (event: SQSEvent, handler: Handler): Promise
   return {
     statusCode: 200,
     body: JSON.stringify({ message: 'Messages processed' })
+  }
+}
+
+export const HandleResponse = (response: Result): APIGatewayProxyResultV2 => {
+  const {body, statusCode} = response.bodyToString();
+  return {
+    statusCode: statusCode,
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
   }
 }

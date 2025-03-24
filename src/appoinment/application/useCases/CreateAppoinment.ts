@@ -14,6 +14,7 @@ export class CreateAppoinment {
         const newAppoinment = new Appoinment(appoinment);
         await this.repository.registerAppoinment(newAppoinment);
         await this.sendNotification(newAppoinment);
+        return;
     }
 
     private async sendNotification(appointmentData: Appoinment): Promise<void> {

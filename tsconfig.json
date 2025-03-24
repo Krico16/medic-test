@@ -6,7 +6,6 @@
   },
   "exclude": [
     "node_modules",
-    "@aws-sdk/client-dynamodb/dist-types"
   ],
   "types": [
     "node",

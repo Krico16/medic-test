@@ -4,7 +4,7 @@ import { AppoinmentRepositoryImp } from "../aws/DynamoRepo";
 import { MessageUtil } from "../../../common/utils/response";
 import { Appoinment } from "../../domain/models/Appoinment";
 import { GetAppoinment } from "../../application/useCases/GetAppointment";
-import { Request } from "../../../common/utils/middleware";
+import { HandleResponse, Request } from "../../../common/utils/middleware";
 import { SnsClient } from "../aws/SnsClient";
 import { updateAppointment } from "../../application/useCases/UpdateAppointment";
 
@@ -41,7 +41,7 @@ export class AppoinmentController {
          });
     }
 
-    async registerAppoinment(request: Request): Promise<any> {
+    async registerAppoinment(request: Request): Promise<MessageUtil> {
         console.info(`REQUEST:: POST /appointment - ${JSON.stringify(request)}`);
         try {
             const { body } = request;

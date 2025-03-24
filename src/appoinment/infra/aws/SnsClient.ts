@@ -28,6 +28,7 @@ export class SnsClient {
             const command = new PublishCommand(params);
             const response = await this.snsClient.send(command);
             console.log('SNS:: Notification sent', response);
+            return;
         } catch (error) {
             console.error('SNS:: Error sending notification', error);
             throw new Error('Error sending notification');

@@ -1,6 +1,6 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, GetItemCommand, GetItemCommandInput, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { AppoinmentRepository } from "../../domain/repository/AppoinmentRepository";
-import { DynamoDBDocument, GetCommand, PutCommand, PutCommandInput, ScanCommand, UpdateCommandInput } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocument, GetCommand, GetCommandInput, PutCommand, PutCommandInput, ScanCommand, UpdateCommandInput } from "@aws-sdk/lib-dynamodb";
 
 export class AppoinmentRepositoryImp implements AppoinmentRepository {
     private readonly dynamoClient: DynamoDBDocument;
@@ -20,18 +20,18 @@ export class AppoinmentRepositoryImp implements AppoinmentRepository {
             Item: appoinment
         }
 
-        await this.dynamoClient.send(new PutCommand(params));
+        await this.dynamoClient.send(new PutItemCommand(params));
     }
 
     async getAppoinment(appoinmentId: string): Promise<any> {
-        const params = {
+        const params: GetCommandInput = {
             TableName: this.tableName,
             Key: {
                 appointmentId: appoinmentId
             }
         }
 
-        const result = await this.dynamoClient.send(new GetCommand(params));
+        const result = await this.dynamoClient.send(new GetItemCommand(params));
         return result.Item;
     }
 

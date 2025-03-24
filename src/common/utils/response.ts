@@ -5,7 +5,7 @@ enum StatusCode {
     badRequest = 400,
 }
 
-class Result {
+export class Result {
     private statusCode: number;
     private code: number;
     private message: string;
