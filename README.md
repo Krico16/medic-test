@@ -35,6 +35,9 @@ flowchart TD
 
 ## Endpoints
 
+## Base URL
+`https://pm5b4jzwi8.execute-api.us-east-1.amazonaws.com`
+
 ### POST /V1/appointment
 Creates a new appointment
 - **Request**: AppointmentRequest object

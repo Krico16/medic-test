@@ -8,8 +8,8 @@ info:
     - List all appointments from a specific user
   version: 1.0.0
 servers:
-  - url: 'https://api.indra.com/{basePath}'
-    description: 'Production server'
+  - url: 'https://pm5b4jzwi8.execute-api.us-east-1.amazonaws.com'
+    description: 'Dev Server'
 paths:
   /V1/appointment:
     post:
