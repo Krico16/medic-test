@@ -38,17 +38,17 @@ flowchart TD
 ## Base URL
 `https://pm5b4jzwi8.execute-api.us-east-1.amazonaws.com`
 
-### POST /V1/appointment
+### POST `/V1/appointment`
 Creates a new appointment
 - **Request**: AppointmentRequest object
 - **Response**: Success/Error response
 
-### GET /V1/appointment/{appointmentId}
+### GET `/V1/appointment/{appointmentId}`
 Retrieves an appointment by ID
 - **Request**: Path parameter `appointmentId`
 - **Response**: Success/Error response
 
-### GET /V1/appointments/{insuredId}
+### GET `/V1/appointments/{insuredId}`
 Retrieves all appointments for an insured
 - **Request**: Path parameter `insuredId`
 - **Response**: Success/Error response
