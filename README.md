@@ -1,80 +1,111 @@
-<!--
-title: TODO
-description: This example shows your how to create a TypeScript powered HTTP API with DynamoDB.
-layout: Doc
-framework: v1
-platform: AWS
-language: nodeJS
-authorLink: 'https://github.com/QuantumInformation'
-authorName: Nikos
-authorAvatar: 'https://avatars0.githubusercontent.com/u/216566?v=4&s=140'
--->
+# Appointment Management Service
 
-# Introduction
+A serverless REST API for managing medical appointments across different countries.
 
-TypeScript (ts) offers type safety which is helpful when working with the AWS SDK, which comes with ts definitions (d.ts)
+## Architecture
 
-# compiling
+The system uses an event-driven architecture with the following AWS services:
 
-You can compile the ts files in this directory by 1st installing typescript via
+- **API Gateway**: Routes HTTP requests to Lambda functions
+- **Lambda**: Processes requests and handles business logic
+- **DynamoDB**: Stores appointment data
+- **SNS**: Routes appointments to country-specific queues
+- **SQS**: Manages country-specific appointment processing
+- **EventBridge**: Handles appointment confirmation events
 
-`npm install -g typescript`
+### Flow Diagram
 
-then
+```mermaid
+flowchart TD
+    A[API Gateway] --> B
+    B -- Create/Update --> C[DynamoDB]
+    B --> D[SNS Topic]
+    D --> E[SQS Peru]
+    D --> F[SQS Chile]
+    E --> G[Lambda PE]
+    F --> H[Lambda CL]
+    G --> I[EventBridge]
+    H --> I
+    I --> J[SQS Confirmation]
+    J --> B(Lambda Handler)@{shape: processes}
 
-`npm i`
-
-You can then run the compiler by running `tsc` in this directory. It will pull the settings from .tsconfig and extra @types
-from package.json. The output create.js file is what will be uploaded by serverless.
-
-For brevity, I have just demonstrated this to match with the todos/create.js, todos/list.js, todos/get.js and todos/update.js lambda function
-
-## Usage
-
-You can create, retrieve, update, or delete todos with the following commands:
-
-### Create a Todo
-
-```bash
-curl -X POST https://XXXXXXX.execute-api.us-east-1.amazonaws.com/todos --data '{ "text": "Learn Serverless" }'
+    classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:white
+    class A,B,C,D,E,F,G,H,I,J,K aws
 ```
 
-Example Result:
+## Endpoints
+
+### POST /V1/appointment
+Creates a new appointment
+- **Request**: AppointmentRequest object
+- **Response**: Success/Error response
+
+### GET /V1/appointment/{appointmentId}
+Retrieves an appointment by ID
+- **Request**: Path parameter `appointmentId`
+- **Response**: Success/Error response
+
+## SOLID Principles Implementation
+
+1. **Single Responsibility**
+    - Each Lambda function has one purpose
+    - Separate handlers for PE/CL processing
+
+2. **Open/Closed**
+    - Country-specific logic isolated in separate handlers
+    - New countries can be added without modifying existing code
+
+3. **Liskov Substitution**
+    - Common interfaces for appointment processing
+    - Country handlers are interchangeable
+
+4. **Interface Segregation**
+    - Specific event patterns for each queue
+    - Separated confirmation handling
+
+5. **Dependency Inversion**
+    - Business logic depends on abstractions
+    - Infrastructure details isolated in adapters
+
+## Serverless Resources
+
+### Storage
+- `AppointmentsTable`: DynamoDB table for appointment storage
+
+### Messaging
+- `ApointmentSnsTopic`: Routes appointments by country
+- `SQSPE`/`SQSCL`: Country-specific processing queues
+- `SQSConfirmation`: Handles appointment confirmations
+
+### Event Management
+- `CompletedAppointmentsEventBus`: Manages completion events
+- `AppointmentEventRule`: Routes events to confirmation queue
+
+### Security
+- `SnsToSqsPolicy`: Allows SNS to SQS message flow
+- `EventBridgeToConfirmatedQueuePolicy`: Allows EventBridge to SQS flow
+
+## Setup & Configuration
+
+1. Install dependencies:
 ```bash
-{"text":"Learn Serverless","id":"ee6490d0-aa11e6-9ede-afdfa051af86","createdAt":1479138570824,"checked":false,"updatedAt":1479138570824}%
+npm install
 ```
 
-### List all Todos
-
+2. Local development:
 ```bash
-curl https://XXXXXXX.execute-api.us-east-1.amazonaws.com/todos
+sls offline
 ```
 
-Example output:
+3. Deploy:
 ```bash
-[{"text":"Deploy my first service","id":"ac90feaa11e6-9ede-afdfa051af86","checked":true,"updatedAt":1479139961304},{"text":"Learn Serverless","id":"206793aa11e6-9ede-afdfa051af86","createdAt":1479139943241,"checked":false,"updatedAt":1479139943241}]%
+npm run deploy
 ```
 
-### Get one Todo
+## Environment Variables
 
-```bash
-# Replace the <id> part with a real id from your todos table
-curl https://XXXXXXX.execute-api.us-east-1.amazonaws.com/todos/<id>
-```
-
-Example Result:
-```bash
-{"text":"Learn Serverless","id":"ee6490d0-aa11e6-9ede-afdfa051af86","createdAt":1479138570824,"checked":false,"updatedAt":1479138570824}%
-```
-
-### Update a Todo
-
-```bash
-# Replace the <id> part with a real id from your todos table
-curl -X PUT https://XXXXXXX.execute-api.us-east-1.amazonaws.com/todos/<id> --data '{ "text": "Learn Serverless", "checked": true }'
-```
-
-Example Result:
-```bash
-{"text":"Learn Serverless","id":"ee6490d0-aa11e6-9ede-afdfa051af86","createdAt":1479138570824,"checked":true,"updatedAt":1479138570824}%
-```
+Required environment variables:
+- `DYNAMODB_TABLE`
+- `SNS_TOPIC_ARN`
+- `SQS_PE_ARN`
+- `SQS_CL_ARN`
