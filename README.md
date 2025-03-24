@@ -48,6 +48,11 @@ Retrieves an appointment by ID
 - **Request**: Path parameter `appointmentId`
 - **Response**: Success/Error response
 
+### GET /V1/appointments/{insuredId}
+Retrieves all appointments for an insured
+- **Request**: Path parameter `insuredId`
+- **Response**: Success/Error response
+
 ## SOLID Principles Implementation
 
 1. **Single Responsibility**
